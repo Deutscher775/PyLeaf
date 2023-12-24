@@ -7,25 +7,35 @@
     <link rel="stylesheet" href="main.css">
 </head>
 <script src="main.js"></script>
-<body>
-    <div class="header-dashboard">
-        <div class="hd-infoboard">
-            <p id="hd-title">Loading..</p>
-            <div class="cl-toggle-switch">
-                <label class="cl-switch" id="btn-hd-on_off_toggle">
-                  <input type="checkbox" id="check-hd-on_off_switch" >
-                  <span></span>
-                </label>
-              </div>
-            <div class="hd-brightness">
-                <input type="range" name="" id="range-hd-brightness" >
-                <span id="span-brightness">Loading..</span>
+    <body id="body">
+        <button id="settings">Settings</button>
+        <div class="popup-div", id="popup-div">
+            <div id="popup">
+                <div id="popup-decoration"><img src="assets/network-error.png" alt=""></div>
+                <h1 id="popup-header"></h1>
+                <p id="popup-description"></p>
+                <button id="popup-btn-retry">Retry</button>
             </div>
         </div>
+        <div id="app">
+            <div class="header-dashboard" id="header-dashboard">
+                <div class="hd-infoboard">
+                    <p id="hd-title">Loading..</p>
+                    <div class="cl-toggle-switch">
+                        <label class="cl-switch" id="btn-hd-on_off_toggle">
+                        <input type="checkbox" id="check-hd-on_off_switch" >
+                        <span></span>
+                        </label>
+                    </div>
+                    <div class="hd-brightness">
+                        <input type="range" name="" id="range-hd-brightness" >
+                        <span id="span-brightness">Loading..</span>
+                    </div>
+                </div>
+            </div>
+            <div class="scenes-manager">
+                <div id="sm-selector"></div>
+            </div>
     </div>
-    <div class="scenes-manager">
-        <select id="sm-select" >
-        </select>
-    </div>
-</body>
+    </body>
 </html>
