@@ -1,4 +1,5 @@
 window.onload = async function () {
+    syncStorage()
     ol_load()
     console.log(document.cookie)
 
@@ -12,8 +13,14 @@ window.onload = async function () {
     }
 }
 
+function syncStorage () {
+    for (item of Object.keys(sessionStorage)) {
+        localStorage.setItem(item, sessionStorage.getItem(item))
+    }
+}
+
 function getPanelAddress() {
-    return document.cookie.split(";")[0].split("=")[1]
+    return localStorage.getItem("panel.address")
 }
 
 async function available () { 
@@ -37,7 +44,7 @@ async function ol_load() {
         getBrightness();
         getCurrentScene();
         getScenes();
-        document.getElementById("check-hd-on_off_switch").onchange = function () {
+        document.getElementById("header-dashboard").onclick = function () {
             hdToggleOnOff();
         };
         document.getElementById("range-hd-brightness").oninput = function () {
@@ -104,38 +111,46 @@ function set_scenes_option(scenceslist=Array) {
 }
 
 async function set_current_scene(scene) {
+    updateDashboardBorder()
+    const respone = await fetch(`${getPanelAddress()}/get/effect/colortheme`, {method: "GET"})
+    const respone_json = await respone.json()
     for (scene_card of document.getElementById("sm-selector").children) {
         if (scene_card.innerHTML == scene) {
-            const respone = await fetch(`${getPanelAddress()}/get/effect/colortheme?effect=${scene}`, {method: "GET"})
-            const respone_json = await respone.json()
             scene_card.style.fontWeight = "bold"
             scene_card.style.border = "4px solid transparent"
             scene_card.style.background = `
-            linear-gradient(to bottom right, hsl(${respone_json["list"][0]["hue"]}, ${respone_json["list"][0]["saturation"]}%, 50%), 
-            hsl(${respone_json["list"][1]["hue"]}, ${respone_json["list"][1]["saturation"]}%, 40%)) padding-box,
-            linear-gradient(to bottom right, hsl(${respone_json["list"][0]["hue"]}, ${respone_json["list"][0]["saturation"]}%, 50%), 
-            hsl(${respone_json["list"][1]["hue"]}, ${respone_json["list"][1]["saturation"]}%, 60%)) border-box`;
+            linear-gradient(to bottom right, hsl(${respone_json[scene_card.innerHTML][0]["hue"]}, ${respone_json[scene_card.innerHTML][0]["saturation"]}%, 50%), 
+            hsl(${respone_json[scene_card.innerHTML][1]["hue"]}, ${respone_json[scene_card.innerHTML][1]["saturation"]}%, 40%)) padding-box,
+            linear-gradient(to bottom right, hsl(${respone_json[scene_card.innerHTML][0]["hue"]}, ${respone_json[scene_card.innerHTML][0]["saturation"]}%, 60%), 
+            hsl(${respone_json[scene_card.innerHTML][1]["hue"]}, ${respone_json[scene_card.innerHTML][1]["saturation"]}%, 70%)) border-box`;
         } else {
             scene_card.style.background = "#1f1f1e"
             scene_card.style.border = "none"
             scene_card.style.fontWeight = "normal"
+            scene_card.style.background = `
+            linear-gradient(to bottom right, hsl(${respone_json[scene_card.innerHTML][0]["hue"]}, ${respone_json[scene_card.innerHTML][0]["saturation"]}%, 10%), 
+            hsl(${respone_json[scene_card.innerHTML][1]["hue"]}, ${respone_json[scene_card.innerHTML][1]["saturation"]}%, 10%))`;
+            
             }
         }
     }
 
+async function updateDashboardBorder() {
+    const scene = await beGetData().then(data => data.effects.current)
+    const respone = await fetch(`${getPanelAddress()}/get/effect/colortheme`, {method: "GET"})
+    const respone_json = await respone.json()
+    document.getElementById("header-dashboard").style.border = "4px solid transparent"
+    document.getElementById("header-dashboard").style.background = `
+    linear-gradient(to bottom right, hsl(${respone_json[scene][0]["hue"]}, ${respone_json[scene][0]["saturation"]}%, 10%), 
+    hsl(${respone_json[scene][1]["hue"]}, ${respone_json[scene][1]["saturation"]}%, 20%)) padding-box,
+    linear-gradient(to bottom right, hsl(${respone_json[scene][0]["hue"]}, ${respone_json[scene][0]["saturation"]}%, 50%), 
+    hsl(${respone_json[scene][1]["hue"]}, ${respone_json[scene][1]["saturation"]}%, 60%)) border-box`
+}
 
-async function set_current_state(state) {
+function set_current_state(state) {
     document.getElementById("check-hd-on_off_switch").checked = state
     if (state == true) {
-        const scene = await beGetData().then(data => data.effects.current)
-        console.log(scene)
-        const respone = await fetch(`${getPanelAddress()}/get/effect/colortheme?effect=${scene}`, {method: "GET"})
-        const respone_json = await respone.json()
-        document.getElementById("header-dashboard").style.border = "4px solid transparent"
-        document.getElementById("header-dashboard").style.background = `
-        linear-gradient(#292928, #292928) padding-box,
-        linear-gradient(to bottom right, hsl(${respone_json["list"][0]["hue"]}, ${respone_json["list"][0]["saturation"]}%, 50%), 
-        hsl(${respone_json["list"][1]["hue"]}, ${respone_json["list"][1]["saturation"]}%, 60%)) border-box`
+        updateDashboardBorder()
     } else {
         document.getElementById("header-dashboard").style.background = `linear-gradient(#292928, #292928) padding-box`
         }
@@ -152,10 +167,12 @@ function beGetGreeting() {
 
     if (hours < 12) {
         return "morning";
-    } else if (hours < 18) {
+    } else if (hours < 14) {
         return "noon";
+    } else if (hours < 18) {
+        return "afternoon";
     } else {
-        return "evening";
+        return "evening"
     }
 }
 
@@ -170,24 +187,22 @@ function beGetBrightness() {
     });
 }
 
-function hdToggleOnOff() {
-    beGetData().then(data => {
+async function hdToggleOnOff() {
+    beGetData().then(async data => {
         const state = data.state.on.value;
         const newState = !state;
-        fetch(`${getPanelAddress()}/power?state=${newState}`, { method: "POST" });
-        oc_load()
+        await fetch(`${getPanelAddress()}/power?state=${newState}`, { method: "POST" })
+        .then(async response => {
+            const response_json = await response.json()
+            set_current_state(response_json["state"])
+            document.getElementById("check-hd-on_off_switch").value = response_json["state"]
+        })
     });
 }
 
 function getGreeting() {
     const g = beGetGreeting();
-    if (g === "morning") {
-        set_greeting("Good morning!");
-    } else if (g === "noon") {
-        set_greeting("Good afternoon!");
-    } else if (g === "evening") {
-        set_greeting("Good evening!");
-    }
+    set_greeting(`Good ${g}`)
 }
 
 function scenesSetScene(scene) {
@@ -241,5 +256,6 @@ async function getCurrentScene() {
 function getCurrentState() {
     beGetData().then(data => {
         set_current_state(data.state.on.value)
+        document.getElementById("check-hd-on_off_switch").value = data.state.on.value
     });
 }

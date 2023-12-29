@@ -10,8 +10,17 @@
 <body>
     <button id="back">Back</button>
     <div id="connection-settings">
+        <p>Base URL</p>
         <input type="url" name="cs-input-address" id="cs-input-address">
         <button type="submit" id="cs-btn-address">Set</button>
+        <p>Token (parameter)</p>
+        <div id="div-token-paramtype">
+            <input type="text" name="cs-input-token-paramtype-paramname" id="cs-input-token-paramtype-paramname" placeholder="token">
+            <p id="p-token-paramtype-spliter">=</p>
+            <input type="text" name="cs-input-token-paramtype-paramvalue" id="cs-input-token-paramtype-paramvalue" placeholder="AnH6jsKd7JSo1dTkiAkj">
+            <button type="submit" id="cs-btn-token-paramtype">Set</button>
+        </div>
+        <p id="cs-p-token-paramtype-preview"></p>
     </div>
 </body>
 </html>

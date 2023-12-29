@@ -9,13 +9,58 @@ body {
 #connection-settings {
     width: 93vw;
     margin: 0 auto;
-    height: 130px;
+    height: fit-content;
     background-color: #292928;
     border-radius: 30px;
     margin-top: 10px;
 }
 
+#div-token-paramtype {
+    display: flex;
+    height: fit-content;
+} 
+
+#cs-input-token-paramtype-paramname {
+    width: 40px;
+    margin-right: -20px;
+}
+#cs-input-token-paramtype-paramvalue {
+    width: 205px;
+}
+
+#p-token-paramtype-spliter {
+    margin-left: 30px;
+    margin-right: -10px;
+    font-size: 20px;
+    margin-top: 8px;
+}
+
+
+#cs-btn-address {
+    margin-top: 20px;
+}
+
+#cs-btn-token-paramtype {
+    margin-top: 21px;
+}
+
+#cs-p-token-paramtype-preview {
+    padding-bottom: 20px;
+}
+
+p {
+    margin-left: 23px;
+    padding-top: 20px;
+    margin-bottom: -12px;
+}
+
+
 #cs-input-address {
+    width: 300px;
+}
+
+
+input {
     margin: 20px;
     border: #333332 10px solid;
     border-radius: 10px;
@@ -24,41 +69,45 @@ body {
     outline: none;
     width: 265px;
     font-size: 15px;
+    margin-bottom: -30px;
+    height: 20px;
 }
 
 button:hover{
     cursor: pointer;
+    border: #436b46 10px solid;
+    background-color: #436b46;
 }
 
-#cs-btn-address {
+button{
+    position: absolute;
+    height: fit-content;
     margin: 10px;
     border: #2c492e 10px solid;
     border-radius: 10px;
     background-color: #2c492e;
     color: #fff;
     outline: none;
-}
-
-#cs-btn-address:hover {
-    border: #436b46 10px solid;
-    background-color: #436b46;
+    right: 20px;
 }
 
 
-#cs-input-address:hover {
+input:hover {
     background-color: #383838;
     border: #383838 10px solid;
 }
 
-#cs-input-address:focus {
+input:focus {
     background-color: #4d4d4d;
     border: #4d4d4d 10px solid;
 }
 
 #back {
+    position: relative;
     background-color: #1f1f1e;
     color: #fff;
     border: #1f1f1e solid 3px;
     border-radius: 10px;
     margin: 10px;
+    margin-left: 30px;
 }
