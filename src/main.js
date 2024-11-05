@@ -1,261 +1,258 @@
-window.onload = async function () {
-    syncStorage()
-    ol_load()
-    console.log(document.cookie)
-
-    /* Activate all elements after loading */
-    await new Promise(r => setTimeout(r, 1000));
-    document.getElementById("check-hd-on_off_switch").disabled = false
-    document.getElementById("range-hd-brightness").disabled = false
-    document.getElementById("popup-btn-retry").onclick = function () {ol_load()}
-    document.getElementById("settings").onclick = async function () {
-        location.assign("./settings.html")
+async function getPanelAdress() {
+    let panelAdress = localStorage.getItem("panel.adress");
+    if (panelAdress == null) {
+        throw "No panel adress";
     }
+    console.info("Panel adress: " + panelAdress);
+    return panelAdress;
+    
 }
 
-function syncStorage () {
-    for (item of Object.keys(sessionStorage)) {
-        localStorage.setItem(item, sessionStorage.getItem(item))
+async function getData(refresh = false) {
+    if (refresh) {
+        console.log("Refreshing data");
+        localStorage.setItem("data", null);
+        let panelAdress = await getPanelAdress();
+        if (panelAdress == null) {
+            console.error("No panel adress");
+            return;
+        }
+        let response = await fetch(panelAdress + "/get");
+        let data = await response.json();
+        localStorage.setItem("data", JSON.stringify(data));
     }
-}
-
-function getPanelAddress() {
-    return localStorage.getItem("panel.address")
-}
-
-async function available () { 
-    try {
-        const request = await fetch(`${getPanelAddress()}/get`)
-        console.log(request.ok)
-        return request.ok
-    } catch (e) {
-        console.log(e)
-        return false
-    }
-    }
-
-async function ol_load() {
-    var _available = await available()
-    console.log(_available)
-    if (_available) {
-        cancelPopup()
-        getGreeting();
-        getCurrentState();
-        getBrightness();
-        getCurrentScene();
-        getScenes();
-        document.getElementById("header-dashboard").onclick = function () {
-            hdToggleOnOff();
-        };
-        document.getElementById("range-hd-brightness").oninput = function () {
-            scenesSetBrightness(document.getElementById("range-hd-brightness").value);
-        };
-        return;
+    let data = localStorage.getItem("data");
+    if (data == null) {
+        console.log("Missing data, fetching");
+        localStorage.setItem("data", null);
+        let panelAdress = await getPanelAdress();
+        if (panelAdress == null) {
+            return null;
+        }
+        let response = await fetch(panelAdress + "/get");
+        let data = await response.json();
+        localStorage.setItem("data", JSON.stringify(data));
+        return data;
     } else {
-        console.log("Error");
-        raisePopup("Connection error", `Could not connect with the API (${getPanelAddress()}/get)`);
-    } 
-        
-}
-
-function raisePopup(title, description) {
-    document.getElementById("app").style.display = "none"
-    document.getElementById("popup-header").innerHTML = title
-    document.getElementById("popup-description").innerHTML = description
-    document.getElementById("popup-div").style.display = "flex"
-}
-
-function cancelPopup() {
-    document.getElementById("popup-div").style.display = "none"
-    document.getElementById("app").style.display = "initial"
-}
-
-async function oc_load () {
-    const check_if_available = fetch(`${getPanelAddress()}/get`)
-    if (!(await check_if_available).ok) {
-        console.log("down")
+        data = JSON.parse(data);
     }
-    await new Promise(r => setTimeout(r, 100));
-    getGreeting()
-    getCurrentState()
-    getBrightness()
-    getCurrentScene()
-    await new Promise(r => setTimeout(r, 100));
-    getScenes()
-    document.getElementById("check-hd-on_off_switch").onchange = function () {hdToggleOnOff()}
-    document.getElementById("range-hd-brightness").oninput = function () {
-        scenesSetBrightness(document.getElementById("range-hd-brightness").value)}
-    document.getElementById("sm-selector-item").onclick = function () {scenesSetScene(this.innerHTML)}
+    return data;
 }
 
-function set_greeting(greeting) {
-    document.getElementById("hd-title").innerHTML = greeting
+async function getColorThemes(refresh = false) {
+    if (refresh) {
+        console.log("Refreshing color themes");
+        localStorage.setItem("colorthemes", null);
+        let panelAdress = await getPanelAdress();
+        if (panelAdress == null) {
+            console.error("No panel adress");
+            return;
+        }
+        let response = await fetch(panelAdress + "/get/effect/colortheme");
+        let data = await response.json();
+        localStorage.setItem("colorthemes", JSON.stringify(data));
+    }
+    let data = localStorage.getItem("colorthemes");
+    if (data == null) {
+        console.log("Missing color themes, fetching");
+        localStorage.setItem("colorThemes", null);
+        let panelAdress = await getPanelAdress();
+        if (panelAdress == null) {
+            return null;
+        }
+        let response = await fetch(panelAdress + "/get/effect/colortheme");
+        let data = await response.json();
+        localStorage.setItem("colorthemes", JSON.stringify(data));
+        return data;
+    } else {
+        data = JSON.parse(data);
+    }
+    return data;
 }
 
-function set_current_brightness(min, max, current) {
-    document.getElementById("range-hd-brightness").min = min
-    document.getElementById("range-hd-brightness").max = max
-    document.getElementById("range-hd-brightness").value = current
-    document.getElementById("span-brightness").innerHTML = current
+async function setScene(scene) {
+    let panelAdress = await getPanelAdress();
+    let response = await fetch(panelAdress + "/set?effect=" + scene, {
+        method: "POST"
+    });
+    let responseJson = await response.json();
+    console.log(responseJson);
+    getData(true)
+    .then(() => {
+        updateCurrentState();
+        setSelectedScene();
+    });
+    console.log("Scene set to: " + scene);
+    
 }
 
-function set_scenes_option(scenceslist=Array) {
-    document.getElementById("sm-selector").innerHTML = null
-    for (scene of scenceslist) {
+async function updateCurrentState() {
+    let data = await getData(); 
+    if (!data || !data.state || !data.state.on) {
+        console.error("Failed to retrieve data or invalid data structure");
+        return;
+    }
+    let state = data.state.on.value
+    
+    document.getElementById("check-hd-on_off_switch").checked = state;
+    console.log("State is set to: " + state)
+    if (state == true) {
+        await updateDashboardTheme();
+    } else {
+        document.getElementById("header-dashboard").style.background = "#292928";
+    }
+}
+
+async function getSceneColortheme(scene, selected = false) {
+    let colorThemes = await getColorThemes();
+    let sceneColorTheme = colorThemes[scene.innerHTML];
+    if (selected) {
+        let colorTheme =  `
+        linear-gradient(to bottom right, hsl(${sceneColorTheme[0]["hue"]}, ${sceneColorTheme[0]["saturation"]}%, 50%), 
+        hsl(${sceneColorTheme[1]["hue"]}, ${sceneColorTheme[1]["saturation"]}%, 40%)) padding-box,
+        linear-gradient(to bottom right, hsl(${sceneColorTheme[0]["hue"]}, ${sceneColorTheme[0]["saturation"]}%, 60%), 
+        hsl(${sceneColorTheme[1]["hue"]}, ${sceneColorTheme[1]["saturation"]}%, 70%)) border-box`;
+        return colorTheme;
+    } else {
+        let colorTheme =  `
+        linear-gradient(to bottom right, hsl(${sceneColorTheme[0]["hue"]}, ${sceneColorTheme[0]["saturation"]}%, 20%), 
+        hsl(${sceneColorTheme[1]["hue"]}, ${sceneColorTheme[1]["saturation"]}%, 20%)) padding-box,
+        linear-gradient(to bottom right, hsl(${sceneColorTheme[0]["hue"]}, ${sceneColorTheme[0]["saturation"]}%, 60%), 
+        hsl(${sceneColorTheme[1]["hue"]}, ${sceneColorTheme[1]["saturation"]}%, 70%)) border-box`;
+        return colorTheme;
+    }
+}
+
+async function appendScenes() {
+    let data = await getData();
+    let scenes = data.effects.effectsList;
+    let sceneContainer = document.getElementById("sm-selector");
+    sceneContainer.innerHTML = "";
+    for (let scene of scenes) {
         var item = document.createElement("button")
         item.id = "sm-selector-item"
         item.innerHTML = scene
-        item.addEventListener("click", function () {scenesSetScene(this.innerHTML)})
-        document.getElementById("sm-selector").appendChild(item)
+
+        item.onclick = async function() {
+            await setScene(scene);
+        }
+        item.style.background = await getSceneColortheme(item);
+        sceneContainer.appendChild(item);
     }
+    await setSelectedScene();
 }
 
-async function set_current_scene(scene) {
-    updateDashboardBorder()
-    const respone = await fetch(`${getPanelAddress()}/get/effect/colortheme`, {method: "GET"})
-    const respone_json = await respone.json()
-    for (scene_card of document.getElementById("sm-selector").children) {
-        if (scene_card.innerHTML == scene) {
-            scene_card.style.fontWeight = "bold"
-            scene_card.style.border = "4px solid transparent"
-            scene_card.style.background = `
-            linear-gradient(to bottom right, hsl(${respone_json[scene_card.innerHTML][0]["hue"]}, ${respone_json[scene_card.innerHTML][0]["saturation"]}%, 50%), 
-            hsl(${respone_json[scene_card.innerHTML][1]["hue"]}, ${respone_json[scene_card.innerHTML][1]["saturation"]}%, 40%)) padding-box,
-            linear-gradient(to bottom right, hsl(${respone_json[scene_card.innerHTML][0]["hue"]}, ${respone_json[scene_card.innerHTML][0]["saturation"]}%, 60%), 
-            hsl(${respone_json[scene_card.innerHTML][1]["hue"]}, ${respone_json[scene_card.innerHTML][1]["saturation"]}%, 70%)) border-box`;
+async function setSelectedScene() {
+    let data = await getData();
+    let sceneContainer = document.getElementById("sm-selector");
+    let selectedScene = data.effects.current;
+    let items = sceneContainer.getElementsByTagName("button");
+    for (let item of items) {
+        if (item.innerHTML == selectedScene) {
+            item.style.background = await getSceneColortheme(item, true);
+            item.style.border = "2px solid transparent";
         } else {
-            scene_card.style.background = "#1f1f1e"
-            scene_card.style.border = "none"
-            scene_card.style.fontWeight = "normal"
-            scene_card.style.background = `
-            linear-gradient(to bottom right, hsl(${respone_json[scene_card.innerHTML][0]["hue"]}, ${respone_json[scene_card.innerHTML][0]["saturation"]}%, 10%), 
-            hsl(${respone_json[scene_card.innerHTML][1]["hue"]}, ${respone_json[scene_card.innerHTML][1]["saturation"]}%, 10%))`;
-            
+            item.style.background = await getSceneColortheme(item);
+            item.style.border = null
+        }
+    }
+}
+
+async function updateDashboardTheme () {
+    console.log("Updating dashboard theme");
+    let data = await getData();
+    let headerdashboard = document.getElementById("header-dashboard");
+    let appendedScenes = document.getElementById("sm-selector");
+    for (let scene of appendedScenes.children) {
+        if (scene.innerHTML == data.effects.current) {
+            headerdashboard.style.background = await getSceneColortheme(scene, true);
+        }
+    }
+
+}
+
+
+async function toggleState() {
+    let data = await getData();
+    let state = data.state.on.value;
+    let panelAdress = await getPanelAdress();
+    let newState = !state;
+    let response = await fetch(panelAdress + "/power?state=" + newState, {
+        method: "POST"
+    }
+    );
+    let responseJson = await response.json();
+    console.log(responseJson);
+    getData(true)
+    .then(() => {
+        updateCurrentState();
+    });
+    console.log("State toggled to: " + newState);
+}
+
+async function updateDashboardTexts() {
+    let data = await getData();
+    let state = data.state.on.value;
+    let brightness = data.state.brightness.value;
+    let brightnessText = document.getElementById("span-brightness");
+    let brightnessSlider = document.getElementById("range-hd-brightness");
+    brightnessText.innerHTML = "Brightness: " + brightness + "%";
+    brightnessSlider.value = brightness;
+    let currentScene = data.effects.current;
+    document.getElementById("hd-title").innerHTML = currentScene;
+}
+
+async function changeBrightness() {
+    let data = await getData();
+    let brightness = document.getElementById("range-hd-brightness").value;
+    let panelAdress = await getPanelAdress();
+    let response = await fetch(panelAdress + "/set?brightness=" + brightness, {
+        method: "POST"
+    });
+    let responseJson = await response.json();
+    console.log(responseJson);
+    getData(true)
+    .then(() => {
+        updateDashboardTexts();
+    });
+    console.log("Brightness set to: " + brightness);
+    
+}
+
+async function changedBrightnessPreview() {
+    let brightness = document.getElementById("range-hd-brightness").value;
+    let brightnessText = document.getElementById("span-brightness");
+    brightnessText.innerHTML = "Brightness: " + brightness + "%";
+}
+
+
+
+async function initial_load() {
+    await getData(true);
+    let data = await getData();
+    console.log(data);
+    document.getElementById("header-dashboard").onclick = async function() {
+        if (event.target.id === "range-hd-brightness") {
+            event.target.oninput = async function() {
+                await changedBrightnessPreview();
             }
+            event.target.onchange = async function() {
+                await changeBrightness();
+            }
+        } else {
+            await toggleState();
         }
     }
-
-async function updateDashboardBorder() {
-    const scene = await beGetData().then(data => data.effects.current)
-    const respone = await fetch(`${getPanelAddress()}/get/effect/colortheme`, {method: "GET"})
-    const respone_json = await respone.json()
-    document.getElementById("header-dashboard").style.border = "4px solid transparent"
-    document.getElementById("header-dashboard").style.background = `
-    linear-gradient(to bottom right, hsl(${respone_json[scene][0]["hue"]}, ${respone_json[scene][0]["saturation"]}%, 10%), 
-    hsl(${respone_json[scene][1]["hue"]}, ${respone_json[scene][1]["saturation"]}%, 20%)) padding-box,
-    linear-gradient(to bottom right, hsl(${respone_json[scene][0]["hue"]}, ${respone_json[scene][0]["saturation"]}%, 50%), 
-    hsl(${respone_json[scene][1]["hue"]}, ${respone_json[scene][1]["saturation"]}%, 60%)) border-box`
+    await getColorThemes(true);
+    await appendScenes();
+    await updateDashboardTexts();
+    await updateCurrentState();
 }
 
-function set_current_state(state) {
-    document.getElementById("check-hd-on_off_switch").checked = state
-    if (state == true) {
-        updateDashboardBorder()
-    } else {
-        document.getElementById("header-dashboard").style.background = `linear-gradient(#292928, #292928) padding-box`
-        }
+window.onload = async function() {
+    await initial_load();
+
+    document.getElementById("settings").onclick = async function() {
+        window.location.href = "settings.html";
     }
-
-function beGetData() {
-    return fetch(`${getPanelAddress()}/get`)
-        .then(response => response.json());
-}
-
-function beGetGreeting() {
-    const dt = new Date();
-    const hours = dt.getHours();
-
-    if (hours < 12) {
-        return "morning";
-    } else if (hours < 14) {
-        return "noon";
-    } else if (hours < 18) {
-        return "afternoon";
-    } else {
-        return "evening"
-    }
-}
-
-function beGetScenes() {
-    return beGetData().then(data => data.effects.effectsList);
-}
-
-function beGetBrightness() {
-    return beGetData().then(data => {
-        const brightness = data.state.brightness;
-        return [brightness.min, brightness.max, brightness.value];
-    });
-}
-
-async function hdToggleOnOff() {
-    beGetData().then(async data => {
-        const state = data.state.on.value;
-        const newState = !state;
-        await fetch(`${getPanelAddress()}/power?state=${newState}`, { method: "POST" })
-        .then(async response => {
-            const response_json = await response.json()
-            set_current_state(response_json["state"])
-            document.getElementById("check-hd-on_off_switch").value = response_json["state"]
-        })
-    });
-}
-
-function getGreeting() {
-    const g = beGetGreeting();
-    set_greeting(`Good ${g}`)
-}
-
-function scenesSetScene(scene) {
-    beGetData().then(data => {
-        const currentScene = data.effects.current;
-        if (scene && scene !== currentScene && scene.indexOf(beGetScenes())) {
-            fetch(`${getPanelAddress()}/set?effect=${scene}`, { method: "POST" })
-            .then(respone => {
-                if (respone.ok) {
-                    getCurrentScene()
-                }
-            })
-        }
-    });
-}
-
-function scenesSetBrightness(brightness) {
-    beGetData().then(data => {
-        const currentBrightness = data.state.brightness.value;
-        if (brightness && brightness !== currentBrightness) {
-            fetch(`${getPanelAddress()}/set?brightness=${brightness}`, { method: "POST" })
-            .then(respone => {
-                if (respone.ok) {
-                    getBrightness()
-                }
-            })
-        }
-    });
-}
-
-function getBrightness() {
-    beGetBrightness().then(b => {
-        const [min, max, value] = b;
-        set_current_brightness(min, max, value)
-    });
-}
-
-function getScenes() {
-    beGetScenes().then(scenes => {
-        set_scenes_option(scenes)
-    });
-}
-
-async function getCurrentScene() {
-    await new Promise(r => setTimeout(r, 200));
-    beGetData().then(data => {
-        set_current_scene(data.effects.current)
-    });
-}
-
-function getCurrentState() {
-    beGetData().then(data => {
-        set_current_state(data.state.on.value)
-        document.getElementById("check-hd-on_off_switch").value = data.state.on.value
-    });
 }

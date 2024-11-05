@@ -2,7 +2,7 @@ body {
     margin: 0;
     padding: 0;
     background-color: #333332;
-    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    font-family: "Inter", sans-serif;
     color: #fff;
 }
 
@@ -95,23 +95,19 @@ input[type="range"] {
 
 /* Firefox */
 input[type="range"]::-moz-range-track {
-    background: #1f1f1e;
-    height: 0.4rem;
+    background: transparent
 }
 
 input[type="range"]::-moz-range-progress {
     background: #85b8b7;
-    height: 0.4rem;
+    height: 2rem;
     border-radius: 40px;
 }
 
 input[type="range"]::-moz-range-thumb {
-    background-color: #018786;
-    color: #018786;
     border: none;
-    height: 20px;
-    width: 20px;
-    border-radius: 50%;
+    z-index: -10;
+    background: transparent;
 }
 
 input[type="range"]::-moz-range-track {
@@ -120,26 +116,24 @@ input[type="range"]::-moz-range-track {
 
 /* All other standard browsers */
 input[type="range"]::-webkit-slider-runnable-track {
-    background: #1f1f1e;
-    height: 0.4rem;
+    background: #85b8b7;
+    height: 1rem;
     border-radius: 40px;
-    -webkit-appearance: none;
 }
-
-input[type="range"]::-webkit-progress-value {
-    color: #85b8b7;
-    height: 0.4rem;
-    border-radius: 40px;
-    -webkit-appearance: none;
-}
-
 
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    color: #018786;
-    height: 20px;
-    width: 20px;
+    border: none;
+    height: 1.5rem;
+    width: 2rem;
+    background: #85b8b7;
     border-radius: 50%;
+}
+
+input[type="range"]::-webkit-progress-value {
+    background: #85b8b7;
+    height: 2rem;
+    border-radius: 40px;
 }
 
 
@@ -193,3 +187,6 @@ button {
     font-weight: bold;
 }
 
+a {
+    color: #fff;
+}
